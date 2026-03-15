@@ -1,0 +1,78 @@
+.page-container {
+  min-height: 100vh;
+  background: #050505;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  font-family: "Azeret Mono", monospace;
+  color: #fff;
+  padding: 60px 20px;
+}
+
+.header-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(40px, 6vw, 80px);
+  letter-spacing: 4px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.resurgence-accent {
+  color: #ff3333;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #ff3333 44%, transparent);
+  margin: 24px 0 48px 0;
+}
+
+.scoreboard-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.row-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.2s,
+    background 0.2s;
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+}
+
+.row-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.01);
+}
+
+.blue-glow {
+  color: #5ba8ff;
+  text-shadow: 0 0 10px rgba(91, 168, 255, 0.3);
+}
+.red-glow {
+  color: #ff5555;
+  text-shadow: 0 0 10px rgba(255, 85, 85, 0.3);
+}
+
+.rank-box {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 24px;
+  padding: 16px;
+  width: 80px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.blink {
+  animation: blink 1.5s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
