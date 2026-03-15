@@ -223,7 +223,7 @@ export default function AdminDashboard() {
   const [defenseLogs, setDefenseLogs] = useState<DefenseLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
 
   // Modals
   const [createTeamModal, setCreateTeamModal] = useState(false);
@@ -447,7 +447,7 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <style>{`
+      {/* <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500&display=swap');
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -458,7 +458,7 @@ export default function AdminDashboard() {
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-      `}</style>
+      `}</style> */}
 
       <div
         style={{
@@ -577,7 +577,7 @@ export default function AdminDashboard() {
                 fontSize: "11px",
               }}
             >
-              {time.toLocaleTimeString("en-US", { hour12: false })}
+              {time?.toLocaleTimeString("en-US", { hour12: false })}
             </span>
           </div>
         </header>
