@@ -1,0 +1,43 @@
+require("dotenv").config();
+
+const express = require("express");
+const http = require("http");
+const socketio = require("socket.io");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const db = require("./config/db");
+
+const attackRoutes = require("./routes/attackRoutes");
+const defenceRoutes = require("./routes/defenceRoutes");
+
+const authRoutes = require("./routes/authRoutes");
+const teamRoutes = require("./routes/teamRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
+const app = express();
+const server = http.createServer(app);
+const io = socketio(server);
+
+app.use(
+  cors({
+    origin: "http://localhost:3000", // your frontend URL
+    credentials: true, // allow cookies to be sent
+  }),
+);
+app.use(express.json());
+app.use(cookieParser());
+
+app.use("/attack", attackRoutes);
+app.use("/defense", defenceRoutes);
+app.use("/auth", authRoutes);
+app.use("/team", teamRoutes);
+app.use("/vuln", attackRoutes);
+app.use("/api/admin", adminRoutes);
+
+io.on("connection", (socket) => {
+  console.log("Dashboard connected");
+});
+
+server.listen(5000, () => {
+  console.log("Server running on port 5000");
+});

@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String       @id @default(uuid())
+  username  String       @unique
+  password  String
+  role      String
+
+  teamMember TeamMember?
+
+  createdAt DateTime @default(now())
+}
+
+
+model Team {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  role      TeamRole
+  score     Int          @default(0)
+
+  members   TeamMember[]
+
+  attacksSent     AttackLog[] @relation("Attacker")
+  attacksReceived AttackLog[] @relation("Target")
+
+  defenses DefenseLog[]
+
+  createdAt DateTime @default(now())
+}
+
+model TeamMember {
+  id     String @id @default(uuid())
+  userId String @unique
+  teamId String
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+}
+
+model AttackLog {
+  id           String   @id @default(uuid())
+  type         AttackType
+  success      Boolean
+
+  attackerId   String
+  targetTeamId String
+
+  attacker Team @relation("Attacker", fields: [attackerId], references: [id])
+  target   Team @relation("Target", fields: [targetTeamId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model DefenseLog {
+  id        String   @id @default(uuid())
+  type      AttackType
+  success   Boolean
+
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum AttackType {
+  SQL_INJECTION
+  XSS
+  AUTH_BYPASS
+}
+
+enum TeamRole {
+  RED
+  BLUE
+}
