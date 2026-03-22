@@ -13,9 +13,40 @@ export default function Dashboard() {
   const [joining, setJoining] = useState<Role | null>(null);
   const [hovered, setHovered] = useState<Role | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkingTeam, setCheckingTeam] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const checkTeam = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/team/me", {
+          credentials: "include",
+        });
+
+        const data = await res.json();
+
+        if (data) {
+          const role = data.role?.toLowerCase();
+
+          if (role === "red") {
+            router.replace("/dashboard/red");
+            return;
+          } else if (role === "blue") {
+            router.replace("/dashboard/blue");
+            return;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setCheckingTeam(false);
+      }
+    };
+
+    checkTeam();
   }, []);
 
   /* custom cursor */
@@ -30,7 +61,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted || checkingTeam) return null;
 
   const handleJoin = (role: Role) => {
     router.push(`/dashboard/select-team/${role.toLowerCase()}`);
