@@ -144,6 +144,8 @@ export default function Page() {
           --border: #1c1c1c;
           --text: #e8e8e8;
           --dim: #5a5a5a;
+          --cyan: #00f2ff;
+  --cyan-dim: #006666;
         }
         html, body { background: var(--bg); overflow-x: hidden; }
         body { font-family: 'Rajdhani', sans-serif; color: var(--text); }
@@ -293,12 +295,6 @@ export default function Page() {
           gap: 4px;
         }
 
-        :root {
-  /* ... your other vars ... */
-  --cyan: #00f2ff;
-  --cyan-dim: #006666;
-}
-
 .cyber-btn-red {
   position: relative;
   display: inline-flex;
@@ -373,7 +369,7 @@ export default function Page() {
               SYS::ONLINE
               <span
                 className="w-2 h-2 rounded-full animate-pulse"
-                style={{ background: "var(--red)" }}
+                style={{ background: "#00ff88" }}
               />
             </span>
             <a

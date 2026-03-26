@@ -635,20 +635,11 @@ export default function AdminDashboard() {
                   gap: "1rem",
                 }}
               >
+                <StatCard label="users" value={dashboard.stats.userCount} />
+                <StatCard label="teams" value={dashboard.stats.teamCount} />
+                <StatCard label="attacks" value={dashboard.stats.attackCount} />
                 <StatCard
-                  label="Network Nodes"
-                  value={dashboard.stats.userCount}
-                />
-                <StatCard
-                  label="Active Squads"
-                  value={dashboard.stats.teamCount}
-                />
-                <StatCard
-                  label="Total Incursions"
-                  value={dashboard.stats.attackCount}
-                />
-                <StatCard
-                  label="Countermeasures"
+                  label="defenses"
                   value={dashboard.stats.defenseCount}
                 />
               </div>
@@ -728,7 +719,7 @@ export default function AdminDashboard() {
               style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
             >
               <SectionHeader
-                title={`Squadrons (${teams.length})`}
+                title={`Teams (${teams.length})`}
                 action={
                   <div style={{ display: "flex", gap: "8px" }}>
                     <GhostButton onClick={resetScores} danger>
@@ -861,7 +852,7 @@ export default function AdminDashboard() {
                           })
                         }
                       >
-                        Mod
+                        Increment score
                       </GhostButton>
                       <GhostButton onClick={() => deleteTeam(team.id)} danger>
                         Purge
@@ -876,7 +867,7 @@ export default function AdminDashboard() {
           {/* ── USERS ── */}
           {tab === "users" && (
             <div>
-              <SectionHeader title={`Identified Personnel (${users.length})`} />
+              <SectionHeader title={`Players (${users.length})`} />
               <div style={{ overflowX: "auto" }}>
                 <table
                   style={{
@@ -888,23 +879,21 @@ export default function AdminDashboard() {
                 >
                   <thead>
                     <tr style={{ borderBottom: "1px solid #1a1a1a" }}>
-                      {["Identifier", "Level", "Assignment", "Actions"].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            style={{
-                              textAlign: "left",
-                              padding: "10px 12px",
-                              color: "#444444",
-                              fontSize: "10px",
-                              textTransform: "uppercase",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {h}
-                          </th>
-                        ),
-                      )}
+                      {["Username", "Role", "Team", "Actions"].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            textAlign: "left",
+                            padding: "10px 12px",
+                            color: "#444444",
+                            fontSize: "10px",
+                            textTransform: "uppercase",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
