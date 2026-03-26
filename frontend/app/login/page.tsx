@@ -74,7 +74,7 @@ export default function LoginPage() {
   return (
     <AuthRedirect>
       <Background3D />
-      <main className="flex items-center justify-center h-screen font-sans overflow-hidden">
+      <main className="relative z-10 flex items-center justify-center h-screen overflow-hidden">
         <motion.div
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}

@@ -63,9 +63,8 @@ exports.getTargets = async (req, res) => {
 
     const teams = await prisma.team.findMany({
       where: {
-        id: {
-          not: teamId,
-        },
+        id: { not: teamId },
+        role: "BLUE", // ✅ only blue teams
       },
       select: {
         id: true,

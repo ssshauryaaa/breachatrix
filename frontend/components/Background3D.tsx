@@ -99,7 +99,10 @@ export default function Background3D() {
   };
 
   return (
-    <div className="fixed inset-0 -z-10 bg-black" onClick={handleClick}>
+    <div
+      className="fixed inset-0 z-0 w-full h-full pointer-events-none"
+      onClick={handleClick}
+    >
       <Canvas camera={{ position: [0, 0, 200], fov: 75 }}>
         <color attach="background" args={["#000000"]} />
         <StarField clickPos={clickPos} />
