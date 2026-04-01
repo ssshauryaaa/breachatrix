@@ -487,7 +487,8 @@ exports.createAnnouncement = async (req, res) => {
     });
 
     // Emit real-time event to all connected participants
-    if (_io) _io.emit("new_announcement", announcement);
+   const io = req.app.get("io");
+io.emit("new_announcement", announcement);
 
     res.status(201).json({ message: "Announcement created", announcement });
   } catch (err) {
@@ -563,6 +564,11 @@ exports.deleteAnnouncement = async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.announcement.delete({ where: { id } });
+
+    // 🔥 Emit deletion event
+    const io = req.app.get("io");
+    io.emit("delete_announcement", { id });
+
     res.json({ message: "Announcement deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });

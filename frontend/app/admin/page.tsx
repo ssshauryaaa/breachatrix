@@ -130,7 +130,7 @@ function StatCard({ label, value, accent = "#3b82f6" }: { label: string; value: 
 
 function GhostButton({ onClick, children, danger, success, disabled, small }: any) {
   const [hover, setHover] = useState(false);
-  
+
   const getColors = () => {
     if (danger) return { border: "#ef4444", bg: "rgba(239, 68, 68, 0.1)", text: "#ef4444" };
     if (success) return { border: "#22c55e", bg: "rgba(34, 197, 94, 0.1)", text: "#22c55e" };
@@ -200,6 +200,18 @@ function Badge({ role }: { role: TeamRole }) {
     </span>
   );
 }
+
+// ─────────────────────────────────────────────
+// ANNOUNCEMENT TYPE CONFIG
+// ─────────────────────────────────────────────
+
+const TYPE_CONFIG: Record<AnnouncementType, { color: string; bg: string; label: string }> = {
+  INFO:    { color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  label: "INFO" },
+  WARNING: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  label: "WARNING" },
+  ALERT:   { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   label: "ALERT" },
+  SUCCESS: { color: "#22c55e", bg: "rgba(34,197,94,0.12)",   label: "SUCCESS" },
+};
+
 // ─────────────────────────────────────────────
 // MAIN DASHBOARD
 // ─────────────────────────────────────────────
@@ -215,7 +227,6 @@ export default function AdminDashboard() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [time, setTime] = useState<string>("");
 
-  // Modals & Forms State (Keeping your existing logic)
   const [createTeamModal, setCreateTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamRole, setNewTeamRole] = useState<TeamRole>("RED");
@@ -224,8 +235,17 @@ export default function AdminDashboard() {
   const [bonusReason, setBonusReason] = useState("");
 
   const [selectedTeamId, setSelectedTeamId] = useState("");
-const [points, setPoints] = useState("");
-const [reason, setReason] = useState("");
+  const [points, setPoints] = useState("");
+  const [reason, setReason] = useState("");
+
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
+  // ── NEW: Announcement form state ──
+  const [newTitle, setNewTitle] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [newType, setNewType] = useState<AnnouncementType>("INFO");
+  const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -239,7 +259,7 @@ const [reason, setReason] = useState("");
     setTimeout(() => setToast(null), 3000);
   };
 
-  // --- API CALLS (Assuming your existing logic remains the same) ---
+  // --- API CALLS ---
   const fetchDashboard = async () => {
     setLoading(true);
     try {
@@ -261,143 +281,169 @@ const [reason, setReason] = useState("");
   };
 
   const fetchUsers = async () => {
-  setLoading(true);
-  try {
-    const r = await fetch(`${API}/admin/users`, {
-      credentials: "include",
-    });
-    const d = await r.json();
-    setUsers(Array.isArray(d) ? d : []);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/admin/users`, { credentials: "include" });
+      const d = await r.json();
+      setUsers(Array.isArray(d) ? d : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-const fetchLogs = async () => {
-  setLoading(true);
-  try {
-    const [a, d] = await Promise.all([
-      fetch(`${API}/admin/logs/attacks`, { credentials: "include" }),
-      fetch(`${API}/admin/logs/defenses`, { credentials: "include" }),
-    ]);
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const [a, d] = await Promise.all([
+        fetch(`${API}/admin/logs/attacks`, { credentials: "include" }),
+        fetch(`${API}/admin/logs/defenses`, { credentials: "include" }),
+      ]);
+      setAttackLogs(Array.isArray(await a.json()) ? await a.json() : []);
+      setDefenseLogs(Array.isArray(await d.json()) ? await d.json() : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-    const attacks = await a.json();
-    const defenses = await d.json();
+  const fetchScoring = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/admin/scores/history`, { credentials: "include" });
+      const d = await r.json();
+      setScoreHistory(Array.isArray(d.history) ? d.history : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-    setAttackLogs(Array.isArray(attacks) ? attacks : []);
-    setDefenseLogs(Array.isArray(defenses) ? defenses : []);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchComms = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/admin/announcements`, { credentials: "include" });
+      const d = await r.json();
+      setAnnouncements(Array.isArray(d) ? d : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
+  const applyBonus = async () => {
+    if (!selectedTeamId || !points || !reason) return showToast("Fill all fields", false);
+    try {
+      const r = await fetch(`${API}/admin/teams/${selectedTeamId}/bonus`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points: Number(points), reason }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast("Bonus applied");
+      fetchScoring(); fetchTeams();
+    } catch (e: any) { showToast(e.message, false); }
+  };
 
-const fetchScoring = async () => {
-  setLoading(true);
-  try {
-    const r = await fetch(`${API}/admin/scores/history`, {
-      credentials: "include",
-    });
-    const d = await r.json();
+  const applyPenalty = async () => {
+    if (!selectedTeamId || !points || !reason) return showToast("Fill all fields", false);
+    try {
+      const r = await fetch(`${API}/admin/teams/${selectedTeamId}/penalty`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points: Number(points), reason }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast("Penalty applied");
+      fetchScoring(); fetchTeams();
+    } catch (e: any) { showToast(e.message, false); }
+  };
 
-    // ⚠️ your backend returns { history, grouped }
-    setScoreHistory(Array.isArray(d.history) ? d.history : []);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-};
+  // ── NEW: Create announcement ──
+  const createAnnouncement = async () => {
+    if (!newTitle.trim() || !newMessage.trim()) {
+      return showToast("Title and message are required", false);
+    }
+    setAnnouncementSubmitting(true);
+    try {
+      const r = await fetch(`${API}/admin/announcements`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle.trim(), message: newMessage.trim(), type: newType }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast("Announcement broadcast");
+      setNewTitle("");
+      setNewMessage("");
+      setNewType("INFO");
+      fetchComms();
+    } catch (e: any) {
+      showToast(e.message, false);
+    } finally {
+      setAnnouncementSubmitting(false);
+    }
+  };
 
-const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  // ── NEW: Delete announcement ──
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      const r = await fetch(`${API}/admin/announcements/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        throw new Error(d.error);
+      }
+      showToast("Announcement deleted");
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    } catch (e: any) {
+      showToast(e.message, false);
+    }
+  };
 
-const fetchComms = async () => {
-  setLoading(true);
-  try {
-    const r = await fetch(`${API}/admin/announcements`, {
-      credentials: "include",
-    });
-    const d = await r.json();
-    setAnnouncements(Array.isArray(d) ? d : []);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setLoading(false);
-  }
-};
+  // ── NEW: Toggle pin ──
+  const togglePin = async (a: Announcement) => {
+    try {
+      const r = await fetch(`${API}/admin/announcements/${a.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pinned: !a.pinned }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast(d.announcement.pinned ? "Pinned" : "Unpinned");
+      setAnnouncements((prev) =>
+        prev.map((item) => (item.id === a.id ? d.announcement : item))
+      );
+    } catch (e: any) {
+      showToast(e.message, false);
+    }
+  };
 
-const applyBonus = async () => {
-  if (!selectedTeamId || !points || !reason) {
-    return showToast("Fill all fields", false);
-  }
+  // ── NEW: Clear all announcements ──
+  const clearAllAnnouncements = async () => {
+    if (!confirm("Clear ALL announcements? This cannot be undone.")) return;
+    try {
+      const r = await fetch(`${API}/admin/announcements`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast(d.message);
+      setAnnouncements([]);
+    } catch (e: any) {
+      showToast(e.message, false);
+    }
+  };
 
-  try {
-    const r = await fetch(`${API}/admin/teams/${selectedTeamId}/bonus`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        points: Number(points),
-        reason,
-      }),
-    });
+  useEffect(() => {
+    if (tab === "overview") fetchDashboard();
+    if (tab === "teams") fetchTeams();
+    if (tab === "users") fetchUsers();
+    if (tab === "logs") fetchLogs();
+    if (tab === "scoring") { fetchScoring(); fetchTeams(); }
+    if (tab === "comms") fetchComms();
+  }, [tab]);
 
-    const d = await r.json();
-
-    if (!r.ok) throw new Error(d.error);
-
-    showToast("Bonus applied");
-    fetchScoring(); // refresh history
-    fetchTeams();   // refresh scores
-  } catch (e: any) {
-    showToast(e.message, false);
-  }
-};
-
-const applyPenalty = async () => {
-  if (!selectedTeamId || !points || !reason) {
-    return showToast("Fill all fields", false);
-  }
-
-  try {
-    const r = await fetch(`${API}/admin/teams/${selectedTeamId}/penalty`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        points: Number(points),
-        reason,
-      }),
-    });
-
-    const d = await r.json();
-
-    if (!r.ok) throw new Error(d.error);
-
-    showToast("Penalty applied");
-    fetchScoring();
-    fetchTeams();
-  } catch (e: any) {
-    showToast(e.message, false);
-  }
-};
-
- useEffect(() => {
-  if (tab === "overview") fetchDashboard();
-  if (tab === "teams") fetchTeams();
-  if (tab === "users") fetchUsers();
-  if (tab === "logs") fetchLogs();
-  if (tab === "scoring") {
-  fetchScoring();
-  fetchTeams(); // REQUIRED for dropdown
-}
-  if (tab === "comms") fetchComms();
-}, [tab]);
   // ── RENDER ──
   return (
     <div style={{
@@ -406,41 +452,24 @@ const applyPenalty = async () => {
       color: "#e2e2e2",
       fontFamily: "'Inter', sans-serif",
     }}>
-      {/* Dynamic Toast */}
       {toast && (
         <div style={{
-          position: "fixed",
-          bottom: "2rem",
-          right: "2rem",
-          zIndex: 1000,
-          background: "#111",
-          borderLeft: `4px solid ${toast.ok ? "#22c55e" : "#ef4444"}`,
-          padding: "1rem 1.5rem",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: "12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
+          position: "fixed", bottom: "2rem", right: "2rem", zIndex: 1000,
+          background: "#111", borderLeft: `4px solid ${toast.ok ? "#22c55e" : "#ef4444"}`,
+          padding: "1rem 1.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          fontFamily: "'IBM Plex Mono', monospace", fontSize: "12px",
+          display: "flex", alignItems: "center", gap: "12px"
         }}>
           <span style={{ color: toast.ok ? "#22c55e" : "#ef4444" }}>{toast.ok ? "SUCCESS" : "ERROR"}</span>
           <span>{toast.msg}</span>
         </div>
       )}
 
-      {/* Modern Header */}
       <header style={{
-        height: "64px",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        padding: "0 2rem",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        background: "rgba(5, 5, 5, 0.8)",
-        backdropFilter: "blur(12px)",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
+        height: "64px", borderBottom: "1px solid rgba(255,255,255,0.05)",
+        padding: "0 2rem", display: "flex", alignItems: "center",
+        justifyContent: "space-between", background: "rgba(5, 5, 5, 0.8)",
+        backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ width: "32px", height: "32px", background: "#fff", borderRadius: "4px", display: "grid", placeItems: "center" }}>
@@ -450,7 +479,6 @@ const applyPenalty = async () => {
             BREACH <span style={{ fontWeight: 300, color: "#666" }}>@trix</span>
           </div>
         </div>
-
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "10px", color: "#3b82f6" }}>
@@ -463,14 +491,10 @@ const applyPenalty = async () => {
         </div>
       </header>
 
-      {/* Sidebar-style Tab Navigation */}
       <div style={{ display: "flex", maxWidth: "1600px", margin: "0 auto" }}>
         <nav style={{
-          width: "240px",
-          padding: "2rem 1rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "4px",
+          width: "240px", padding: "2rem 1rem",
+          display: "flex", flexDirection: "column", gap: "4px",
           borderRight: "1px solid rgba(255,255,255,0.05)",
           minHeight: "calc(100vh - 64px)"
         }}>
@@ -479,18 +503,13 @@ const applyPenalty = async () => {
               key={t}
               onClick={() => setTab(t as Tab)}
               style={{
-                textAlign: "left",
-                padding: "10px 16px",
+                textAlign: "left", padding: "10px 16px",
                 background: tab === t ? "rgba(255,255,255,0.05)" : "transparent",
-                border: "none",
-                borderRadius: "4px",
+                border: "none", borderRadius: "4px",
                 color: tab === t ? "#fff" : "#666",
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: "11px",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                cursor: "pointer",
-                transition: "all 0.2s"
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px",
+                textTransform: "uppercase", letterSpacing: "0.1em",
+                cursor: "pointer", transition: "all 0.2s"
               }}
             >
               {tab === t && <span style={{ marginRight: "8px", color: "#3b82f6" }}>&gt;</span>}
@@ -499,8 +518,9 @@ const applyPenalty = async () => {
           ))}
         </nav>
 
-        {/* Main Workspace */}
         <main style={{ flex: 1, padding: "2.5rem" }}>
+
+          {/* ── OVERVIEW ── */}
           {tab === "overview" && dashboard && (
             <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem" }}>
@@ -509,7 +529,6 @@ const applyPenalty = async () => {
                 <StatCard label="Incursions" value={dashboard.stats.attackCount} accent="#ef4444" />
                 <StatCard label="Neutralizations" value={dashboard.stats.defenseCount} accent="#22c55e" />
               </div>
-
               <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", overflow: "hidden" }}>
                 <div style={{ padding: "1.25rem", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3 style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.15em", color: "#888", margin: 0 }}>Leaderboard Output</h3>
@@ -541,6 +560,7 @@ const applyPenalty = async () => {
             </div>
           )}
 
+          {/* ── TEAMS ── */}
           {tab === "teams" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -550,15 +570,9 @@ const applyPenalty = async () => {
                 </div>
                 <GhostButton onClick={() => setCreateTeamModal(true)} success>Initialize Squad</GhostButton>
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "1.5rem" }}>
                 {teams.map(team => (
-                  <div key={team.id} style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.05)",
-                    borderRadius: "6px",
-                    padding: "1.5rem"
-                  }}>
+                  <div key={team.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px", padding: "1.5rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem" }}>
                       <div>
                         <Badge role={team.role} />
@@ -570,7 +584,6 @@ const applyPenalty = async () => {
                         <div style={{ fontSize: "9px", color: "#444" }}>PTS</div>
                       </div>
                     </div>
-
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       <GhostButton small onClick={() => {}}>Roster</GhostButton>
                       <GhostButton small onClick={() => setBonusModal({ teamId: team.id, teamName: team.name })} success>Bonus</GhostButton>
@@ -582,300 +595,403 @@ const applyPenalty = async () => {
             </div>
           )}
 
+          {/* ── USERS ── */}
           {tab === "users" && (
-  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-    <h2 style={{ fontSize: "24px", margin: 0 }}>Operatives</h2>
-
-    <div style={{
-      background: "rgba(255,255,255,0.02)",
-      border: "1px solid rgba(255,255,255,0.05)",
-      borderRadius: "8px",
-      overflow: "hidden"
-    }}>
-      <table style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        fontFamily: "'IBM Plex Mono', monospace"
-      }}>
-        <thead>
-          <tr style={{ color: "#444", fontSize: "10px", textTransform: "uppercase" }}>
-            <th style={{ padding: "1rem" }}>Username</th>
-            <th style={{ padding: "1rem" }}>Role</th>
-            <th style={{ padding: "1rem" }}>Team</th>
-            <th style={{ padding: "1rem" }}>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id} style={{ borderTop: "1px solid rgba(255,255,255,0.02)" }}>
-              <td style={{ padding: "1rem" }}>{u.username}</td>
-              <td style={{ padding: "1rem", color: "#666" }}>{u.role}</td>
-              <td style={{ padding: "1rem" }}>
-                {u.teamMember?.team?.name || "—"}
-              </td>
-              <td style={{ padding: "1rem", color: "#666" }}>
-                {new Date(u.createdAt).toLocaleDateString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
-
-{tab === "logs" && (
-  <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-    <h2>Activity Logs</h2>
-
-    {/* ATTACK */}
-    <div>
-      <h4 style={{ color: "#ef4444" }}>Attack Events</h4>
-
-      {attackLogs.map(log => (
-        <div key={log.id} style={{
-          padding: "12px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-              <span style={{
-                color: log.success ? "#22c55e" : "#ef4444",
-                fontWeight: 600
-              }}>
-                {log.success ? "SUCCESS" : "FAIL"}
-              </span>
-
-              {" — "}
-              <strong>{log.attacker.name}</strong>
-              {" → "}
-              <strong>{log.target.name}</strong>
-              {" "}
-              <span style={{ color: "#666" }}>({log.type})</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              <h2 style={{ fontSize: "24px", margin: 0 }}>Operatives</h2>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  <thead>
+                    <tr style={{ color: "#444", fontSize: "10px", textTransform: "uppercase" }}>
+                      <th style={{ padding: "1rem" }}>Username</th>
+                      <th style={{ padding: "1rem" }}>Role</th>
+                      <th style={{ padding: "1rem" }}>Team</th>
+                      <th style={{ padding: "1rem" }}>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} style={{ borderTop: "1px solid rgba(255,255,255,0.02)" }}>
+                        <td style={{ padding: "1rem" }}>{u.username}</td>
+                        <td style={{ padding: "1rem", color: "#666" }}>{u.role}</td>
+                        <td style={{ padding: "1rem" }}>{u.teamMember?.team?.name || "—"}</td>
+                        <td style={{ padding: "1rem", color: "#666" }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-
-            <div style={{ fontSize: "10px", color: "#555" }}>
-              {new Date(log.createdAt).toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-
-    {/* DEFENSE */}
-    <div>
-      <h4 style={{ color: "#3b82f6" }}>Defense Events</h4>
-
-      {defenseLogs.map(log => (
-        <div key={log.id} style={{
-          padding: "12px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-              <span style={{
-                color: log.success ? "#22c55e" : "#ef4444",
-                fontWeight: 600
-              }}>
-                {log.success ? "SUCCESS" : "FAIL"}
-              </span>
-
-              {" — "}
-              <strong>{log.team.name}</strong>
-              {" "}
-              <span style={{ color: "#666" }}>({log.type})</span>
-            </div>
-
-            <div style={{ fontSize: "10px", color: "#555" }}>
-              {new Date(log.createdAt).toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
-{tab === "scoring" && (
-  
-  <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-    <div style={{
-  padding: "1.5rem",
-  border: "1px solid rgba(255,255,255,0.05)",
-  borderRadius: "8px",
-  background: "rgba(255,255,255,0.02)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "1rem"
-}}>
-  <h3 style={{ margin: 0 }}>Manual Score Control</h3>
-
-  {/* TEAM SELECT */}
-  <select
-    value={selectedTeamId}
-    onChange={(e) => setSelectedTeamId(e.target.value)}
-    style={{
-      padding: "10px",
-      background: "#0a0a0a",
-      border: "1px solid #222",
-      color: "#fff"
-    }}
-  >
-    <option value="">Select Team</option>
-    {teams.map(t => (
-      <option key={t.id} value={t.id}>
-        {t.name} ({t.role})
-      </option>
-    ))}
-  </select>
-
-  {/* POINTS */}
-  <input
-    type="number"
-    placeholder="Points"
-    value={points}
-    onChange={(e) => setPoints(e.target.value)}
-    style={{
-      padding: "10px",
-      background: "#0a0a0a",
-      border: "1px solid #222",
-      color: "#fff"
-    }}
-  />
-
-  {/* REASON */}
-  <input
-    type="text"
-    placeholder="Reason"
-    value={reason}
-    onChange={(e) => setReason(e.target.value)}
-    style={{
-      padding: "10px",
-      background: "#0a0a0a",
-      border: "1px solid #222",
-      color: "#fff"
-    }}
-  />
-
-  {/* ACTIONS */}
-  <div style={{ display: "flex", gap: "10px" }}>
-    <GhostButton success onClick={applyBonus}>
-      + Bonus
-    </GhostButton>
-
-    <GhostButton danger onClick={applyPenalty}>
-      - Penalty
-    </GhostButton>
-  </div>
-</div>
-    <h2>Score History</h2>
-
-    {scoreHistory.map(s => (
-      <div key={s.id} style={{
-        padding: "1rem",
-        border: "1px solid rgba(255,255,255,0.05)",
-        borderRadius: "6px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Badge role={s.team?.role || "RED"} />
-              <strong>{s.team?.name}</strong>
-            </div>
-
-            <div style={{ fontSize: "12px", color: "#888" }}>
-              {s.reason}
-            </div>
-          </div>
-
-          <div style={{
-            fontWeight: 700,
-            color: s.delta > 0 ? "#22c55e" : "#ef4444"
-          }}>
-            {s.delta > 0 ? "+" : ""}{s.delta}
-          </div>
-        </div>
-
-        <div style={{ fontSize: "10px", color: "#555", marginTop: "6px" }}>
-          {s.type} • {new Date(s.createdAt).toLocaleString()}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
-
-{tab === "comms" && (
-  <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-    <h2>Announcements</h2>
-
-    {announcements.map(a => (
-      <div key={a.id} style={{
-        padding: "1rem",
-        border: "1px solid rgba(255,255,255,0.05)",
-        borderLeft: `4px solid ${
-          a.type === "ALERT" ? "#ef4444" :
-          a.type === "WARNING" ? "#f59e0b" :
-          a.type === "SUCCESS" ? "#22c55e" :
-          "#3b82f6"
-        }`,
-        borderRadius: "6px",
-        background: a.pinned ? "rgba(255,255,255,0.03)" : "transparent"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <strong>{a.title}</strong>
-          {a.pinned && (
-            <span style={{ fontSize: "10px", color: "#f59e0b" }}>
-              PINNED
-            </span>
           )}
-        </div>
 
-        <p style={{ margin: "8px 0", color: "#ccc" }}>
-          {a.message}
-        </p>
+          {/* ── LOGS ── */}
+          {tab === "logs" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+              <h2>Activity Logs</h2>
+              <div>
+                <h4 style={{ color: "#ef4444" }}>Attack Events</h4>
+                {attackLogs.map(log => (
+                  <div key={log.id} style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div>
+                        <span style={{ color: log.success ? "#22c55e" : "#ef4444", fontWeight: 600 }}>{log.success ? "SUCCESS" : "FAIL"}</span>
+                        {" — "}<strong>{log.attacker.name}</strong>{" → "}<strong>{log.target.name}</strong>{" "}
+                        <span style={{ color: "#666" }}>({log.type})</span>
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#555" }}>{new Date(log.createdAt).toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <h4 style={{ color: "#3b82f6" }}>Defense Events</h4>
+                {defenseLogs.map(log => (
+                  <div key={log.id} style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div>
+                        <span style={{ color: log.success ? "#22c55e" : "#ef4444", fontWeight: 600 }}>{log.success ? "SUCCESS" : "FAIL"}</span>
+                        {" — "}<strong>{log.team.name}</strong>{" "}
+                        <span style={{ color: "#666" }}>({log.type})</span>
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#555" }}>{new Date(log.createdAt).toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-        <div style={{ fontSize: "10px", color: "#555" }}>
-          {new Date(a.createdAt).toLocaleString()}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+          {/* ── SCORING ── */}
+          {tab === "scoring" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+              <div style={{ padding: "1.5rem", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <h3 style={{ margin: 0 }}>Manual Score Control</h3>
+                <select value={selectedTeamId} onChange={(e) => setSelectedTeamId(e.target.value)} style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #222", color: "#fff" }}>
+                  <option value="">Select Team</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name} ({t.role})</option>)}
+                </select>
+                <input type="number" placeholder="Points" value={points} onChange={(e) => setPoints(e.target.value)} style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #222", color: "#fff" }} />
+                <input type="text" placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #222", color: "#fff" }} />
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <GhostButton success onClick={applyBonus}>+ Bonus</GhostButton>
+                  <GhostButton danger onClick={applyPenalty}>- Penalty</GhostButton>
+                </div>
+              </div>
+              <h2>Score History</h2>
+              {scoreHistory.map(s => (
+                <div key={s.id} style={{ padding: "1rem", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Badge role={s.team?.role || "RED"} />
+                        <strong>{s.team?.name}</strong>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#888" }}>{s.reason}</div>
+                    </div>
+                    <div style={{ fontWeight: 700, color: s.delta > 0 ? "#22c55e" : "#ef4444" }}>
+                      {s.delta > 0 ? "+" : ""}{s.delta}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "10px", color: "#555", marginTop: "6px" }}>
+                    {s.type} • {new Date(s.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── COMMS ── */}
+          {tab === "comms" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+
+              {/* Header row */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                  <h2 style={{ fontSize: "24px", margin: "0 0 6px 0" }}>Broadcast Channel</h2>
+                  <p style={{ color: "#666", fontSize: "13px", margin: 0 }}>
+                    {announcements.length} active announcement{announcements.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {announcements.length > 0 && (
+                  <GhostButton danger onClick={clearAllAnnouncements}>Clear All</GhostButton>
+                )}
+              </div>
+
+              {/* ── CREATE FORM ── */}
+              <div style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}>
+                {/* Form header */}
+                <div style={{
+                  padding: "1rem 1.5rem",
+                  borderBottom: "1px solid rgba(255,255,255,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#3b82f6" }} />
+                  <span style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: "10px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    color: "#888",
+                  }}>New Announcement</span>
+                </div>
+
+                <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+                  {/* Type selector — styled pills */}
+                  <div>
+                    <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: "8px" }}>
+                      Type
+                    </label>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {(["INFO", "WARNING", "ALERT", "SUCCESS"] as AnnouncementType[]).map((t) => {
+                        const cfg = TYPE_CONFIG[t];
+                        const active = newType === t;
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setNewType(t)}
+                            style={{
+                              padding: "6px 14px",
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                              cursor: "pointer",
+                              borderRadius: "2px",
+                              border: `1px solid ${active ? cfg.color : "rgba(255,255,255,0.08)"}`,
+                              background: active ? cfg.bg : "transparent",
+                              color: active ? cfg.color : "#555",
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            {cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Title input */}
+                  <div>
+                    <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: "8px" }}>
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Round 2 Starting in 5 Minutes"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      maxLength={120}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 14px",
+                        background: "#0a0a0a",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: "4px",
+                        color: "#fff",
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: "13px",
+                        outline: "none",
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = TYPE_CONFIG[newType].color)}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+                    />
+                  </div>
+
+                  {/* Message textarea */}
+                  <div>
+                    <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: "8px" }}>
+                      Message
+                    </label>
+                    <textarea
+                      placeholder="Broadcast message visible to all Red and Blue team participants..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      rows={4}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 14px",
+                        background: "#0a0a0a",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: "4px",
+                        color: "#fff",
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: "13px",
+                        resize: "vertical",
+                        outline: "none",
+                        lineHeight: 1.6,
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = TYPE_CONFIG[newType].color)}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+                    />
+                  </div>
+
+                  {/* Preview + Submit row */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                    {/* Live type badge preview */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: "2px",
+                        background: TYPE_CONFIG[newType].bg,
+                        color: TYPE_CONFIG[newType].color,
+                        border: `1px solid ${TYPE_CONFIG[newType].color}44`,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        letterSpacing: "0.08em",
+                      }}>
+                        {newType}
+                      </span>
+                      {newTitle && (
+                        <span style={{ fontSize: "12px", color: "#666", fontStyle: "italic" }}>
+                          "{newTitle.slice(0, 40)}{newTitle.length > 40 ? "…" : ""}"
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={createAnnouncement}
+                      disabled={announcementSubmitting || !newTitle.trim() || !newMessage.trim()}
+                      style={{
+                        padding: "10px 24px",
+                        background: (!newTitle.trim() || !newMessage.trim() || announcementSubmitting)
+                          ? "transparent"
+                          : TYPE_CONFIG[newType].bg,
+                        border: `1px solid ${TYPE_CONFIG[newType].color}`,
+                        borderRadius: "4px",
+                        color: TYPE_CONFIG[newType].color,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        cursor: (!newTitle.trim() || !newMessage.trim() || announcementSubmitting) ? "not-allowed" : "pointer",
+                        opacity: (!newTitle.trim() || !newMessage.trim()) ? 0.35 : 1,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      {announcementSubmitting ? "Broadcasting..." : "⬆ Broadcast"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── ANNOUNCEMENT LIST ── */}
+              {announcements.length === 0 ? (
+                <div style={{
+                  padding: "3rem",
+                  textAlign: "center",
+                  color: "#333",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "12px",
+                  border: "1px dashed rgba(255,255,255,0.05)",
+                  borderRadius: "8px",
+                }}>
+                  NO ACTIVE ANNOUNCEMENTS
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {/* Pinned first, then by date */}
+                  {[...announcements]
+                    .sort((a, b) => {
+                      if (a.pinned && !b.pinned) return -1;
+                      if (!a.pinned && b.pinned) return 1;
+                      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    })
+                    .map((a) => {
+                      const cfg = TYPE_CONFIG[a.type];
+                      return (
+                        <div
+                          key={a.id}
+                          style={{
+                            padding: "1rem 1.25rem",
+                            borderLeft: `3px solid ${cfg.color}`,
+                            background: a.pinned ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.01)",
+                            border: `1px solid rgba(255,255,255,0.05)`,
+                            borderLeftWidth: "3px",
+                            borderLeftColor: cfg.color,
+                            borderRadius: "4px",
+                            transition: "background 0.2s",
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                            {/* Left: badge + title + message */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                                <span style={{
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  padding: "2px 7px",
+                                  borderRadius: "2px",
+                                  background: cfg.bg,
+                                  color: cfg.color,
+                                  border: `1px solid ${cfg.color}44`,
+                                  fontFamily: "'IBM Plex Mono', monospace",
+                                  letterSpacing: "0.06em",
+                                }}>
+                                  {a.type}
+                                </span>
+                                {a.pinned && (
+                                  <span style={{ fontSize: "9px", color: "#f59e0b", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.05em" }}>
+                                    📌 PINNED
+                                  </span>
+                                )}
+                                <strong style={{ fontSize: "14px" }}>{a.title}</strong>
+                              </div>
+                              <p style={{ margin: "0 0 8px 0", color: "#aaa", fontSize: "13px", lineHeight: 1.5 }}>
+                                {a.message}
+                              </p>
+                              <span style={{ fontSize: "10px", color: "#444", fontFamily: "'IBM Plex Mono', monospace" }}>
+                                {new Date(a.createdAt).toLocaleString()}
+                              </span>
+                            </div>
+
+                            {/* Right: actions */}
+                            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                              <GhostButton small onClick={() => togglePin(a)}>
+                                {a.pinned ? "Unpin" : "Pin"}
+                              </GhostButton>
+                              <GhostButton small danger onClick={() => deleteAnnouncement(a.id)}>
+                                Delete
+                              </GhostButton>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Global CSS for subtle animations */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Inter:wght@300;400;600;800&display=swap');
-        
         body { margin: 0; padding: 0; overflow-x: hidden; }
-        
         .spinner {
-          width: 12px;
-          height: 12px;
+          width: 12px; height: 12px;
           border: 2px solid rgba(59, 130, 246, 0.2);
           border-top-color: #3b82f6;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        ::-webkit-scrollbar {
-          width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #050505;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #222;
-          border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #333;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
       `}</style>
     </div>
   );

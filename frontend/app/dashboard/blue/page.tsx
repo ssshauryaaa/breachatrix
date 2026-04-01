@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import "@/styles/blueteam.css";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API = "http://localhost:5000";
 
 type DefenseLog = {
   id: string;
@@ -153,6 +154,7 @@ export default function BlueTeamDashboard() {
 
   return (
     <>
+    <AnnouncementBanner /> 
       <div className="btd">
         {/* ——— TOP BAR ——— */}
         <header className="topbar">

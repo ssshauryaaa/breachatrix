@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const http = require("http");
-const socketio = require("socket.io");
+const socketio = require("socket.io"); // keep this
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const db = require("./config/db");
@@ -16,14 +16,26 @@ const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
+
+// ✅ FIX: Add CORS config directly to Socket.IO
+const io = socketio(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+  },
+});
+
+app.set("io", io); // ✅ THIS is the key
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // your frontend URL
-    credentials: true, // allow cookies to be sent
-  }),
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+  })
 );
+
+
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -35,8 +47,10 @@ app.use("/vuln", attackRoutes);
 app.use("/api/admin", adminRoutes);
 
 io.on("connection", (socket) => {
-  console.log("Dashboard connected");
+  console.log("Dashboard connected:", socket.id);
 });
+
+
 
 server.listen(5000, () => {
   console.log("Server running on port 5000");
