@@ -1152,10 +1152,10 @@ export default function AdminDashboard() {
           {tab === "overview" && dashboard && (
             <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem" }}>
-                <StatCard label="Total Operatives" value={dashboard.stats.userCount}   accent="#3b82f6" />
-                <StatCard label="Active Squads"     value={dashboard.stats.teamCount}   accent="#a855f7" />
-                <StatCard label="Incursions"         value={dashboard.stats.attackCount}  accent="#ef4444" />
-                <StatCard label="Neutralizations"    value={dashboard.stats.defenseCount} accent="#22c55e" />
+                <StatCard label="Total Users" value={dashboard.stats.userCount}   accent="#3b82f6" />
+                <StatCard label="Active Teams"     value={dashboard.stats.teamCount}   accent="#a855f7" />
+                <StatCard label="Attack Attempts"         value={dashboard.stats.attackCount}  accent="#ef4444" />
+                <StatCard label="Defense Actions"    value={dashboard.stats.defenseCount} accent="#22c55e" />
               </div>
               <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", overflow: "hidden" }}>
                 <div style={{ padding: "1.25rem", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1193,7 +1193,7 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
-                  <h2 style={{ fontSize: "24px", margin: "0 0 8px 0" }}>Tactical Units</h2>
+                  <h2 style={{ fontSize: "24px", margin: "0 0 8px 0" }}>Teams</h2>
                   <p style={{ color: "#666", fontSize: "13px" }}>Manage team rosters and manual score adjustments.</p>
                 </div>
               </div>
@@ -1224,7 +1224,7 @@ export default function AdminDashboard() {
           {/* USERS */}
           {tab === "users" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              <h2 style={{ fontSize: "24px", margin: 0 }}>Operatives</h2>
+              <h2 style={{ fontSize: "24px", margin: 0 }}>Users</h2>
               <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'IBM Plex Mono', monospace" }}>
                   <thead>
