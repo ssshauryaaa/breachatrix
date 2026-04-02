@@ -62,13 +62,13 @@ export default function LoginPage() {
       await login(username, password);
 
 console.log("AFTER LOGIN"); // 👈 add this
-window.location.href = "/dashboard";
+
 
 // force fresh state read AFTER set()
 const user = useAuthStore.getState().user;
 
 if (user) {
-  router.push("/dashboard");
+  window.location.href = "/dashboard";
 }
     } catch (err: any) {
       // Set the error state instead of alerting
