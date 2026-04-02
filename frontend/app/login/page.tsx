@@ -61,6 +61,9 @@ export default function LoginPage() {
     try {
       await login(username, password);
 
+console.log("AFTER LOGIN"); // 👈 add this
+window.location.href = "/dashboard";
+
 // force fresh state read AFTER set()
 const user = useAuthStore.getState().user;
 
