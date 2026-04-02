@@ -1,11 +1,14 @@
-/// <reference types="@react-three/fiber" />
 "use client";
-
-import { Points } from "three";
+import { ThreeElements } from "@react-three/fiber";
 import { useState, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements extends ThreeElements {}
+  }
+}
 
 function StarField({
   count = 2500,
@@ -14,7 +17,7 @@ function StarField({
   count?: number;
   clickPos: [number, number] | null;
 }) {
- const mesh = useRef<Points>(null!);
+ const mesh = useRef<THREE.Points>(null!);
   const rippleTime = useRef(0);
   const activeClickPos = useRef<[number, number] | null>(null);
 
