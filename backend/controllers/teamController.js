@@ -51,14 +51,14 @@ exports.joinTeam = async (req, res) => {
 };
 
 exports.getMyTeam = async (req, res) => {
-  console.log("TOKEN USER:", req.user);
+  // console.log("TOKEN USER:", req.user);
   try {
     const membership = await prisma.teamMember.findMany({
       where: { userId: req.user.id },
       include: { team: true },
     });
 
-    console.log("Membership records:", membership);
+    // console.log("Membership records:", membership);
 
     if (membership.length === 0) return res.json(null);
 

@@ -9,7 +9,7 @@ const db = require("./config/db");
 
 const attackRoutes = require("./routes/attackRoutes");
 const defenceRoutes = require("./routes/defenceRoutes");
-
+const announcementRoutes = require("./routes/announcementRoutes");
 const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -45,6 +45,7 @@ app.use("/auth", authRoutes);
 app.use("/team", teamRoutes);
 app.use("/vuln", attackRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/competition", announcementRoutes);
 
 io.on("connection", (socket) => {
   console.log("Dashboard connected:", socket.id);

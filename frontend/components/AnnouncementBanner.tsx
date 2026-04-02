@@ -17,7 +17,6 @@ interface Announcement {
   createdAt: string;
 }
 
-// Matching your SEVERITY_COLORS from the dashboard
 const THEME = {
   INFO: { border: "#00ccff", bg: "rgba(0, 50, 80, 0.9)", glow: "rgba(0, 204, 255, 0.4)" },
   WARNING: { border: "#ffcc00", bg: "rgba(60, 50, 0, 0.9)", glow: "rgba(255, 204, 0, 0.4)" },
@@ -27,6 +26,7 @@ const THEME = {
 
 export default function AnnouncementBanner() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set()); // Track closed items
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -47,18 +47,25 @@ export default function AnnouncementBanner() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API}/api/admin/announcements`, { credentials: "include" })
+    fetch(`${API}/competition`, { credentials: "include" })
       .then((r) => r.json())
       .then((data: Announcement[]) => {
         if (!Array.isArray(data)) return;
         const pinned = data.filter((a) => a.pinned);
-        const recent = data.filter((a) => !a.pinned).slice(0, 3); // Keep only 3 to prevent clutter
+        const recent = data.filter((a) => !a.pinned).slice(0, 3);
         setAnnouncements([...pinned, ...recent]);
       })
       .catch(console.error);
   }, []);
 
+  const handleDismiss = (id: string) => {
+    setDismissedIds((prev) => new Set(prev).add(id));
+  };
+
   if (!mounted) return null;
+
+  // Filter out announcements that have been dismissed in the current session
+  const visibleAnnouncements = announcements.filter(ann => !dismissedIds.has(ann.id));
 
   return createPortal(
     <div
@@ -69,12 +76,12 @@ export default function AnnouncementBanner() {
         width: "340px",
         zIndex: 10000,
         display: "flex",
-        flexDirection: "column-reverse", // Newest at the bottom
+        flexDirection: "column-reverse",
         gap: "12px",
         pointerEvents: "none",
       }}
     >
-      {announcements.map((ann) => {
+      {visibleAnnouncements.map((ann) => {
         const style = THEME[ann.type] || THEME.INFO;
 
         return (
@@ -91,13 +98,34 @@ export default function AnnouncementBanner() {
               position: "relative",
               overflow: "hidden",
               fontFamily: "'Share Tech Mono', monospace",
-              clipPath: "polygon(0% 0%, 100% 0%, 100% 85%, 95% 100%, 0% 100%)", // Angled corner
+              clipPath: "polygon(0% 0%, 100% 0%, 100% 85%, 95% 100%, 0% 100%)",
             }}
           >
-            {/* Scanline Effect Overlay */}
             <div className="scanline-overlay" />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Close Button */}
+            <button
+              onClick={() => handleDismiss(ann.id)}
+              className="close-btn"
+              style={{
+                position: "absolute",
+                top: "8px",
+                right: "8px",
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.5)",
+                cursor: "pointer",
+                fontSize: "16px",
+                lineHeight: "1",
+                padding: "4px",
+                zIndex: 10,
+                transition: "color 0.2s"
+              }}
+            >
+              ✕
+            </button>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: "20px" }}>
               <span style={{ color: style.border, fontSize: "10px", fontWeight: "bold", letterSpacing: "2px" }}>
                 SYSTEM_{ann.type} // {ann.pinned ? "PINNED" : "BROADCAST"}
               </span>
@@ -114,16 +142,18 @@ export default function AnnouncementBanner() {
               &gt; {ann.message}
             </div>
             
-            {/* Corner Accent */}
             <div style={{ position: "absolute", bottom: 0, right: 0, width: "10px", height: "10px", background: style.border }} />
           </div>
         );
       })}
       
-      {/* Global Style for Animations */}
       <style jsx>{`
         .ann-card {
           animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        .close-btn:hover {
+          color: white !important;
+          text-shadow: 0 0 8px white;
         }
         .scanline-overlay {
           position: absolute;
