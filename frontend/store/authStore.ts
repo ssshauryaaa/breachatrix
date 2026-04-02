@@ -1,5 +1,5 @@
 import { create } from "zustand";
-
+import { persist } from "zustand/middleware";
 // ✅ Use the env variable
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL2;
 
@@ -10,8 +10,10 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
 
   login: async (username: string, password: string) => {
     const res = await fetch(`${BACKEND_URL}/auth/login`, {
