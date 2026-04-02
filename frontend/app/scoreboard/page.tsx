@@ -4,7 +4,7 @@ import "./scoreboard.css";
 import { useRouter } from "next/navigation";
 
 import React, { useEffect, useState } from "react";
-
+const API = process.env.NEXT_PUBLIC_API_URL2
 interface Team {
   id: string;
   name: string;
@@ -22,7 +22,7 @@ const Scoreboard = () => {
   useEffect(() => {
     const fetchScores = async () => {
       try {
-        const response = await fetch("http://localhost:5000/team/scoreboard");
+        const response = await fetch(`${API}/team/scoreboard`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch scoreboard");
@@ -40,7 +40,7 @@ const Scoreboard = () => {
 
     const fetchTeam = async () => {
       try {
-        const res = await fetch("http://localhost:5000/team/me", {
+        const res = await fetch(`${API}/team/me`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

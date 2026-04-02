@@ -4,7 +4,7 @@ import "@/styles/redteam.css";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useEffect, useState } from "react";
 
-const API =  "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_API_URL2
   // helper function
 function normalizeUrl(url: string | null) {
   if (!url) return null;

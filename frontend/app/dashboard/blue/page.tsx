@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import "@/styles/blueteam.css";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
-const API = "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_API_URL2
 
 function normalizeUrl(url: string | null) {
   if (!url) return null;
@@ -56,18 +56,21 @@ type Matchup = {
   opponent: Opponent;
 };
 
+// Updated to match AttackType enum
 const VULN_TYPES = [
-  { value: "SQL_INJECTION", label: "SQL Injection",        icon: "💉", color: "#0af"    },
-  { value: "XSS",           label: "Cross-Site Scripting", icon: "🪝", color: "#00e5b0" },
-  { value: "AUTH_BYPASS",   label: "Auth Bypass",          icon: "🔓", color: "#4488ff" },
-  { value: "MISCONFIG",     label: "Misconfiguration",     icon: "⚙️", color: "#a78bfa" },
+  { value: "SQL_INJECTION",            label: "SQL Injection",            icon: "💉", color: "#0af" },
+  { value: "MISCONFIG",                label: "Misconfiguration",        icon: "⚙️", color: "#a78bfa" },
+  { value: "SENSITIVE_DATA_EXPOSURE", label: "Sensitive Data Exposure", icon: "📂", color: "#ff6b6b" },
+  { value: "BROKEN_AUTHENTICATION",   label: "Broken Authentication",   icon: "🔓", color: "#4488ff" },
+  { value: "JWT_VULNERABILITY",       label: "JWT Vulnerability",       icon: "🗝️", color: "#00e5b0" },
 ];
 
 const ATTACK_SEVERITY: Record<string, string> = {
-  SQL_INJECTION: "CRITICAL",
-  AUTH_BYPASS:   "CRITICAL",
-  XSS:           "HIGH",
-  MISCONFIG:     "MEDIUM",
+  SQL_INJECTION:            "CRITICAL",
+  MISCONFIG:                "MEDIUM",
+  SENSITIVE_DATA_EXPOSURE:  "HIGH",
+  BROKEN_AUTHENTICATION:    "CRITICAL",
+  JWT_VULNERABILITY:        "HIGH",
 };
 
 const SEV_COLOR: Record<string, string> = {
@@ -431,7 +434,7 @@ export default function BlueTeamDashboard() {
             </div>
 
             {/* ── PATCH FORM ── */}
-            <div className="form-card">
+            {/* <div className="form-card">
               <div className="panel-heading" style={{ marginBottom: 14 }}>
                 <h2>Deploy Patch</h2>
                 <div className="panel-line" />
@@ -464,7 +467,7 @@ export default function BlueTeamDashboard() {
               {msg && (
                 <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>
               )}
-            </div>
+            </div> */}
 
             {/* ── THREAT BREAKDOWN ── */}
             <div className="threat-card">

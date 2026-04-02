@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { io, Socket } from "socket.io-client";
 
-const API = "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_API_URL2
 
 type AnnouncementType = "INFO" | "WARNING" | "ALERT" | "SUCCESS";
 

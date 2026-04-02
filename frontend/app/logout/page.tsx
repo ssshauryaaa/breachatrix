@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+const API = process.env.NEXT_PUBLIC_API_URL2
 
 export default function LogoutPage() {
   const router = useRouter();
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:5000/auth/logout", {
+      await fetch(`${API}/auth/logout`, {
         method: "POST",
         credentials: "include", // send cookies
       });

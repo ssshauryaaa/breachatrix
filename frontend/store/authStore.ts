@@ -1,5 +1,8 @@
 import { create } from "zustand";
 
+// ✅ Use the env variable
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL2;
+
 interface AuthState {
   user: any;
   login: (username: string, password: string) => Promise<void>;
@@ -10,12 +13,11 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
 
-  // authStore login
   login: async (username: string, password: string) => {
-    const res = await fetch("http://localhost:5000/auth/login", {
+    const res = await fetch(`${BACKEND_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include", // 🔑 cookie will be stored
+      credentials: "include", // cookies will be stored
       body: JSON.stringify({ username, password }),
     });
 
@@ -24,14 +26,21 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw new Error(err.error || "Login failed");
     }
 
-    // ✅ No fetch to /auth/me needed
+    // fetch the logged-in user
+    const userRes = await fetch(`${BACKEND_URL}/auth/me`, {
+      credentials: "include",
+    });
+    if (!userRes.ok) throw new Error("Failed to fetch user");
+    const userData = await userRes.json();
+
+    set({ user: userData });
   },
 
   register: async (username: string, password: string) => {
-    const res = await fetch("http://localhost:5000/auth/register", {
+    const res = await fetch(`${BACKEND_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include", // 🔑 ensure cookie set by backend
+      credentials: "include",
       body: JSON.stringify({ username, password }),
     });
 
@@ -40,10 +49,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw new Error(err.error || "Registration failed");
     }
 
-    const data = await res.json();
-
-    // Optionally fetch user after registration
-    const userRes = await fetch("http://localhost:5000/auth/me", {
+    // fetch the user after registration
+    const userRes = await fetch(`${BACKEND_URL}/auth/me`, {
       credentials: "include",
     });
     if (!userRes.ok) throw new Error("Failed to fetch user");
@@ -53,9 +60,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    await fetch("http://localhost:5000/auth/logout", {
+    await fetch(`${BACKEND_URL}/auth/logout`, {
       method: "POST",
-      credentials: "include", // delete cookie on backend if implemented
+      credentials: "include",
     });
     set({ user: null });
   },

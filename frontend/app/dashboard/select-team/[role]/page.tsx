@@ -9,7 +9,7 @@ interface Team {
   role: "BLUE" | "RED";
   _count?: { members: number };
 }
-
+const API = process.env.NEXT_PUBLIC_API_URL2
 export default function SelectTeam() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,7 @@ export default function SelectTeam() {
   useEffect(() => {
     const checkTeam = async () => {
       try {
-        const res = await fetch("http://localhost:5000/team/me", {
+        const res = await fetch(`${API}/team/me`, {
           credentials: "include", // sends cookie automatically
         });
 
@@ -49,7 +49,7 @@ export default function SelectTeam() {
     const fetchTeams = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/team", {
+        const res = await fetch(`${API}/team`, {
           credentials: "include", // sends cookie automatically
         });
 
@@ -72,7 +72,7 @@ export default function SelectTeam() {
     setJoining(teamId);
     setError(null);
     try {
-      const res = await fetch("http://localhost:5000/team/join", {
+      const res = await fetch(`${API}/team/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // send cookie automatically

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Role = "BLUE" | "RED";
-
+const API = process.env.NEXT_PUBLIC_API_URL2
 export default function Dashboard() {
   const router = useRouter();
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -22,7 +22,7 @@ export default function Dashboard() {
   useEffect(() => {
     const checkTeam = async () => {
       try {
-        const res = await fetch("http://localhost:5000/team/me", {
+        const res = await fetch(`${API}/team/me`, {
           credentials: "include",
         });
 
