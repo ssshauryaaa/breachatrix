@@ -1,45 +1,26 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
 
-interface Props {
-  children: React.ReactNode;
-}
-const API = process.env.NEXT_PUBLIC_API_URL2
-export default function AuthRedirect({ children }: Props) {
+export default function AuthRedirect({ children }: any) {
+  const user = useAuthStore((state) => state.user);
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch(`${API}/auth/me`, {
-          credentials: "include", // send cookie
-        });
+    setHydrated(true);
+  }, []);
 
-        if (res.ok) {
-          // user is logged in → redirect
-          router.push("/dashboard");
-        }
-        // if not ok (401 or 403), user is not logged in → stay on page
-      } catch (err) {
-        // network error → stay on page
-      } finally {
-        setChecking(false);
-      }
-    };
+  useEffect(() => {
+    if (!hydrated) return;
 
-    checkAuth();
-  }, [router]);
+    if (!user) {
+      router.replace("/login"); // use replace, not push
+    }
+  }, [user, hydrated]);
 
-  if (checking) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Checking authentication...</p>
-      </div>
-    );
-  }
+  if (!hydrated) return null;
 
-  return <>{children}</>;
+  return user ? children : null;
 }

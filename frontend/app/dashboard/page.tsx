@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import AuthRedirect from "@/components/AuthRedirect";
 
 type Role = "BLUE" | "RED";
 const API = process.env.NEXT_PUBLIC_API_URL2
@@ -72,6 +73,7 @@ export default function Dashboard() {
 
   return (
     <>
+    <AuthRedirect>
       <style suppressHydrationWarning>{`
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -357,6 +359,7 @@ export default function Dashboard() {
       </div>
 
       {error && <div className="err-toast">⚠ {error.toUpperCase()}</div>}
+      </AuthRedirect>
     </>
   );
 }

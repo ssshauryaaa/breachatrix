@@ -60,7 +60,13 @@ export default function LoginPage() {
 
     try {
       await login(username, password);
-      router.push("/dashboard");
+
+// force fresh state read AFTER set()
+const user = useAuthStore.getState().user;
+
+if (user) {
+  router.push("/dashboard");
+}
     } catch (err: any) {
       // Set the error state instead of alerting
       setError(
@@ -72,7 +78,8 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthRedirect>
+    // <AuthRedirect>
+    <>
       <Background3D />
       <main className="relative z-10 flex items-center justify-center h-screen overflow-hidden">
         <motion.div
@@ -224,6 +231,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
       </main>
-    </AuthRedirect>
+      </>
+    // </AuthRedirect>
   );
 }
